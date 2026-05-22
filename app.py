@@ -276,9 +276,14 @@ Devuelve ÚNICAMENTE el objeto JSON válido, sin texto adicional, sin marcadores
     )
 
     raw = response.content[0].text.strip()
-    # Limpiar posibles backticks residuales
+    # Limpiar backticks residuales
     raw = raw.replace("```json", "").replace("```", "").strip()
-    return json.loads(raw)
+    # Extraer el primer objeto JSON válido aunque haya texto alrededor
+    start = raw.find("{")
+    end   = raw.rfind("}") + 1
+    if start == -1 or end == 0:
+        raise json.JSONDecodeError("No se encontró objeto JSON en la respuesta", raw, 0)
+    return json.loads(raw[start:end])
 
 
 def build_xlsx_multisheet(comparables_data: list[dict]) -> bytes:
