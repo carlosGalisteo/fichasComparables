@@ -17,6 +17,29 @@ import openpyxl
 
 from fill_template import fill_comparable
 
+FIELD_LABELS = {
+    "B2":  "Dirección / emplazamiento",
+    "B3":  "Número de vía",
+    "D3":  "Planta",
+    "F2":  "Municipio",
+    "F3":  "Código postal",
+    "B4":  "Referencia catastral",
+    "B5":  "Tipo de inmueble",
+    "D5":  "Dormitorios",
+    "F5":  "Baños",
+    "H5":  "Superficie de parcela",
+    "B6":  "Superficie construida",
+    "D6":  "Antigüedad",
+    "F6":  "Última reforma",
+    "H6":  "Estado de conservación",
+    "B9":  "Precio de oferta",
+    "D9":  "Precio de anejos",
+    "B11": "Fuente",
+    "D11": "Comercializador",
+    "B12": "URL del anuncio",
+    "H3":  "Fecha de aportación",
+}
+
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIGURACIÓN DE PÁGINA
 # ─────────────────────────────────────────────────────────────────────────────
@@ -635,6 +658,10 @@ def render_extracted_data(item: dict):
         <div class="value {cls('B5')}">{v('B5')}</div>
       </div>
       <div class="data-cell">
+        <div class="label">Estado</div>
+        <div class="value">{v('H6')}</div>
+      </div>
+      <div class="data-cell">
         <div class="label">Planta</div>
         <div class="value {cls('D3')}">{v('D3')}</div>
       </div>
@@ -670,35 +697,39 @@ def render_extracted_data(item: dict):
     """
 
     if desc:
-        badges = "".join(f'<span class="badge-unknown">{c}</span>' for c in desc)
+        badges = "".join(
+            f'<span class="badge-unknown">{FIELD_LABELS.get(c, f"Campo no identificado ({c})")}</span>'
+            for c in desc
+        )
         html += f'<div style="margin-top:10px;"><strong style="font-size:11px;color:#991b1b;">Campos desconocidos:</strong> {badges}</div>'
 
     if flags.get("precio_con_anejos"):
-        html += '<div style="margin-top:6px;"><span class="badge-unknown">⚠ Precio incluye anejos — revisar D9</span></div>'
+        html += '<div style="margin-top:6px;"><span class="badge-unknown">⚠ Precio incluye anejos — revisar precio de anejos</span></div>'
 
     if notas:
         html += f'<div class="analyst-notes">💬 {notas}</div>'
 
     st.markdown(html, unsafe_allow_html=True)
 
-    # Selector de estado de conservación (campo H6)
-    estados = ["", "Muy bueno", "Bueno", "Medio", "Malo", "Muy malo"]
-    estado_key = f"estado_{item.get('comparable', id(item))}"
-    estado_actual = item.get("campos", {}).get("H6", "")
-    idx_actual = estados.index(estado_actual) if estado_actual in estados else 0
-    nuevo_estado = st.selectbox(
-        "Estado de conservación",
-        options=estados,
-        index=idx_actual,
-        key=estado_key,
-        help="Campo H6 de la ficha — selecciona el estado del inmueble",
-    )
-    item["campos"]["H6"] = nuevo_estado
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # HELPERS DE ESTADO
 # ─────────────────────────────────────────────────────────────────────────────
+
+def get_review_items(item: dict) -> list[str]:
+    """Devuelve lista de incidencias legibles para el usuario final."""
+    flags = item.get("flags", {})
+    result = []
+    for code in flags.get("campos_desconocidos", []):
+        result.append(FIELD_LABELS.get(code, f"Campo no identificado ({code})"))
+    if flags.get("precio_con_anejos"):
+        result.append(
+            "Precio de oferta: incluye anejos. Revisar precio imputable "
+            "a garaje, trastero u otros."
+        )
+    return result
+
 
 def _renumber_inputs():
     """Reordena el campo num tras eliminar un comparable del lote."""
@@ -890,13 +921,68 @@ if st.session_state.inputs:
     st.markdown(_lote_html, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.button(
+    _can_analyze = bool(api_key) and bool(st.session_state.inputs)
+    _help_btn = (
+        "Introduce una API Key de Anthropic en el panel izquierdo."
+        if not api_key else ""
+    )
+    if st.button(
         f"▶ Analizar {_n} comparable(s) con Claude",
         type="primary",
-        disabled=True,
-        help="El análisis con Claude se adaptará en la siguiente fase de implementación.",
-    )
-    st.caption("⚙️ Análisis pendiente de adaptar al nuevo flujo guiado.")
+        disabled=not _can_analyze,
+        help=_help_btn,
+    ):
+        _client = anthropic.Anthropic(api_key=api_key)
+        st.session_state.resultados = []
+        _errors = []
+
+        _progress = st.progress(0, text="Preparando análisis...")
+        _status = st.empty()
+
+        for _i, _inp in enumerate(st.session_state.inputs):
+            _status.info(f"Analizando comparable {_inp['num']} de {_n}…")
+            try:
+                _img_b64 = base64.standard_b64encode(_inp["image_bytes"]).decode("utf-8")
+                _result  = extract_comparable_from_image(
+                    _client,
+                    _img_b64,
+                    _inp["image_type"],
+                    _inp["num"],
+                    _inp["url"],
+                    fecha_str,
+                    _inp["ref"],
+                )
+                _campos = _result.get("campos", {})
+                _flags  = _result.get("flags", {})
+                _campos["H6"] = _inp["estado"]
+                _campos["B4"] = _inp["ref"]
+                _campos["B12"] = _inp["url"]
+                _campos["H3"] = fecha_str
+                st.session_state.resultados.append({
+                    "comparable": _inp["num"],
+                    "campos":     _campos,
+                    "flags":      _flags,
+                    "img_name":   _inp["image_name"],
+                })
+            except json.JSONDecodeError as _e:
+                _errors.append(f"Comparable {_inp['num']}: JSON inválido — {_e}")
+            except anthropic.APIError as _e:
+                _errors.append(f"Comparable {_inp['num']}: Error de API — {_e}")
+            except Exception as _e:
+                _errors.append(f"Comparable {_inp['num']}: Error inesperado — {_e}")
+            _progress.progress((_i + 1) / _n)
+
+        _progress.empty()
+        _status.empty()
+
+        if st.session_state.resultados:
+            st.success(
+                f"✅ Análisis completado — {len(st.session_state.resultados)} "
+                f"comparable(s) procesado(s) correctamente."
+            )
+        for _err in _errors:
+            st.error(_err)
+        st.session_state.fase = "resultados"
 else:
     st.info("Usa el panel izquierdo para añadir comparables al lote.")
 
@@ -960,11 +1046,11 @@ if st.session_state.resultados:
             st.error(f"Error al generar el XLSX: {e}")
 
     with col_dl3:
-        total_unknown = sum(
-            len(item.get("flags", {}).get("campos_desconocidos", []))
+        total_incidencias = sum(
+            len(get_review_items(item))
             for item in st.session_state.resultados
         )
-        st.metric("Campos a revisar", total_unknown, delta=None)
+        st.metric("Incidencias a revisar", total_incidencias, delta=None)
 
     # ── JSON bruto (expander colapsado) ──────────────────────────────────────
     with st.expander("🔎 Ver JSON extraído (debug)", expanded=False):
