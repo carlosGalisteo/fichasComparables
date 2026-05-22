@@ -49,13 +49,17 @@ st.markdown("""
     color: #e0e4f0 !important;
   }
   [data-testid="stSidebar"] .stTextInput input,
-  [data-testid="stSidebar"] .stDateInput input {
+  [data-testid="stSidebar"] .stDateInput input,
+  [data-testid="stSidebar"] .stTextArea textarea {
     background: #1a1d2e !important;
     border: 1px solid #2d3150 !important;
     color: #e0e4f0 !important;
     border-radius: 6px !important;
     font-family: 'DM Mono', monospace !important;
     font-size: 12px !important;
+  }
+  [data-testid="stSidebar"] .stTextArea textarea::placeholder {
+    color: #4b5563 !important;
   }
 
   /* Header principal */
@@ -416,6 +420,20 @@ def render_extracted_data(item: dict):
 
     st.markdown(html, unsafe_allow_html=True)
 
+    # Selector de estado de conservación (campo H6)
+    estados = ["", "Muy bueno", "Bueno", "Medio", "Malo", "Muy malo"]
+    estado_key = f"estado_{item.get('comparable', id(item))}"
+    estado_actual = item.get("campos", {}).get("H6", "")
+    idx_actual = estados.index(estado_actual) if estado_actual in estados else 0
+    nuevo_estado = st.selectbox(
+        "Estado de conservación",
+        options=estados,
+        index=idx_actual,
+        key=estado_key,
+        help="Campo H6 de la ficha — selecciona el estado del inmueble",
+    )
+    item["campos"]["H6"] = nuevo_estado
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ESTADO DE SESIÓN
@@ -423,9 +441,6 @@ def render_extracted_data(item: dict):
 
 if "comparables" not in st.session_state:
     st.session_state.comparables = []   # lista de dicts {comparable, campos, flags, img_name}
-if "processing" not in st.session_state:
-    st.session_state.processing = False
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SIDEBAR — CONFIGURACIÓN
@@ -502,9 +517,19 @@ with st.sidebar:
 # CABECERA PRINCIPAL
 # ─────────────────────────────────────────────────────────────────────────────
 
-st.markdown("""
+# Logo en base64 para incrustar en el header
+import base64 as _b64
+from pathlib import Path as _Path
+_logo_path = _Path(__file__).parent / "icono.png"
+if _logo_path.exists():
+    _logo_b64 = _b64.b64encode(_logo_path.read_bytes()).decode()
+    _logo_html = f'<img src="data:image/png;base64,{_logo_b64}" style="height:52px;width:auto;">'
+else:
+    _logo_html = '<div style="font-size:36px;">🏠</div>'
+
+st.markdown(f"""
 <div class="app-header">
-  <div style="font-size:36px;">🏠</div>
+  {_logo_html}
   <div>
     <h1>Fichas de Testigos de Mercado</h1>
     <p>Extracción automática de comparables inmobiliarios · Tenerife · Claude Vision</p>
@@ -550,13 +575,12 @@ if uploaded_files:
             f"▶ Analizar {len(uploaded_files)} imagen(es) con Claude",
             type="primary",
             use_container_width=True,
-            disabled=not api_key or st.session_state.processing,
+            disabled=not api_key,
         )
         if not api_key:
             st.caption("⚠ Introduce la API Key en el panel lateral para continuar.")
 
     if process_btn and api_key:
-        st.session_state.processing = True
         st.session_state.comparables = []
 
         client = anthropic.Anthropic(api_key=api_key)
@@ -566,12 +590,12 @@ if uploaded_files:
         errors_global = []
 
         for i, f in enumerate(uploaded_files):
-            num     = i + 1
-            url_i   = urls[i] if i < len(urls) else ""
-            ref_i   = refs[i] if i < len(refs) else ""
+            num   = i + 1
+            url_i = urls[i] if i < len(urls) else ""
+            ref_i = refs[i] if i < len(refs) else ""
 
             progress_bar.progress(
-                (i) / len(uploaded_files),
+                i / len(uploaded_files),
                 text=f"Analizando comparable {num}/{len(uploaded_files)}: {f.name}",
             )
             status_placeholder.info(f"🔍 Procesando imagen {num}: **{f.name}**…")
@@ -593,7 +617,6 @@ if uploaded_files:
                 errors_global.append(f"Comparable {num} ({f.name}): Error inesperado — {e}")
 
         progress_bar.progress(1.0, text="✅ Análisis completado")
-        st.session_state.processing = False
 
         if errors_global:
             status_placeholder.error("\n".join(errors_global))
@@ -601,8 +624,6 @@ if uploaded_files:
             status_placeholder.success(
                 f"✅ {len(st.session_state.comparables)} comparable(s) extraído(s) correctamente."
             )
-
-        st.rerun()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
