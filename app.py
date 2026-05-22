@@ -508,11 +508,30 @@ def render_extracted_data(item: dict):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# HELPERS DE ESTADO
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _renumber_inputs():
+    """Reordena el campo num tras eliminar un comparable del lote."""
+    for i, item in enumerate(st.session_state.inputs):
+        item["num"] = i + 1
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # ESTADO DE SESIÓN
 # ─────────────────────────────────────────────────────────────────────────────
 
-if "comparables" not in st.session_state:
-    st.session_state.comparables = []   # lista de dicts {comparable, campos, flags, img_name}
+if "inputs" not in st.session_state:
+    st.session_state.inputs = []       # datos introducidos por el usuario
+
+if "resultados" not in st.session_state:
+    st.session_state.resultados = []   # resultados extraídos por Claude
+
+if "fase" not in st.session_state:
+    st.session_state.fase = "entrada"  # entrada | revision | analisis | resultados
+
+if "form_key" not in st.session_state:
+    st.session_state.form_key = 0      # incrementar al guardar para resetear el formulario
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SIDEBAR — CONFIGURACIÓN
@@ -524,7 +543,10 @@ with st.sidebar:
 
     # Leer API key desde Streamlit Secrets (despliegue en cloud)
     # o permitir entrada manual como fallback
-    _secret_key = st.secrets.get("ANTHROPIC_API_KEY", "") if hasattr(st, "secrets") else ""
+    try:
+        _secret_key = st.secrets.get("ANTHROPIC_API_KEY", "")
+    except Exception:
+        _secret_key = ""
     if _secret_key:
         api_key = _secret_key
         st.success("🔑 API Key configurada", icon="✅")
@@ -547,32 +569,75 @@ with st.sidebar:
     )
     fecha_str = fecha_aportacion.strftime("%d/%m/%Y")
 
+    # ── Formulario de entrada comparable a comparable ──────────────────────────
     st.markdown("---")
-    st.markdown("### 🔗 URLs de los anuncios")
-    st.caption("Una URL por línea, en el mismo orden que las imágenes subidas.")
-    urls_raw = st.text_area(
-        "URLs",
-        placeholder="https://www.idealista.com/inmueble/...\nhttps://www.fotocasa.es/...",
-        height=120,
-        label_visibility="collapsed",
-    )
-    urls = [u.strip() for u in urls_raw.strip().splitlines() if u.strip()]
+    _next_num = len(st.session_state.inputs) + 1
+    st.markdown(f"### Comparable {_next_num}")
 
-    st.markdown("---")
-    st.markdown("### 📐 Referencia catastral")
-    st.caption("Opcional. Una por línea, en el mismo orden que las imágenes.")
-    refs_raw = st.text_area(
-        "Refs. catastrales",
-        placeholder="0000001AA0000S0000AA\n(dejar vacío si no se dispone)",
-        height=80,
-        label_visibility="collapsed",
+    _uploaded = st.file_uploader(
+        "Imagen del anuncio",
+        type=["png", "jpg", "jpeg", "webp"],
+        key=f"img_upload_{st.session_state.form_key}",
     )
-    refs = [r.strip() for r in refs_raw.strip().splitlines()]
+    _url_input = st.text_input(
+        "URL del anuncio",
+        placeholder="https://www.idealista.com/inmueble/...",
+        key=f"url_{st.session_state.form_key}",
+    )
+    _ref_input = st.text_input(
+        "Ref. catastral (opcional)",
+        placeholder="0000001AA0000S0000AA",
+        key=f"ref_{st.session_state.form_key}",
+    )
+    _estado_input = st.selectbox(
+        "Estado de conservación",
+        options=["Muy bueno", "Bueno", "Medio", "Malo", "Muy malo"],
+        index=1,
+        key=f"estado_{st.session_state.form_key}",
+    )
 
-    st.markdown("---")
-    if st.session_state.comparables:
-        if st.button("🗑 Limpiar resultados", use_container_width=True):
-            st.session_state.comparables = []
+    if st.button(
+        "Guardar comparable",
+        use_container_width=True,
+        disabled=(_uploaded is None),
+        help="Sube una imagen para poder guardar el comparable.",
+    ):
+        st.session_state.inputs.append({
+            "num": _next_num,
+            "image_bytes": _uploaded.read(),
+            "image_name": _uploaded.name,
+            "image_type": _uploaded.type or "image/png",
+            "url": _url_input.strip(),
+            "ref": _ref_input.strip(),
+            "estado": _estado_input,
+        })
+        st.session_state.form_key += 1
+        st.rerun()
+
+    # ── Resumen del lote en el sidebar ─────────────────────────────────────────
+    if st.session_state.inputs:
+        st.markdown("---")
+        st.markdown(f"### Lote ({len(st.session_state.inputs)} comparable(s))")
+
+        for _item in st.session_state.inputs:
+            _col1, _col2 = st.columns([4, 1])
+            with _col1:
+                st.markdown(f"**{_item['num']}.** {_item['image_name']}")
+                _url_ok = "✓" if _item["url"] else "—"
+                st.caption(f"Estado: {_item['estado']} · URL: {_url_ok}")
+            with _col2:
+                if st.button("✕", key=f"del_{_item['num']}"):
+                    st.session_state.inputs = [
+                        x for x in st.session_state.inputs if x["num"] != _item["num"]
+                    ]
+                    _renumber_inputs()
+                    st.rerun()
+
+        st.markdown("")
+        if st.button("🗑 Limpiar todo", use_container_width=True):
+            st.session_state.inputs = []
+            st.session_state.resultados = []
+            st.session_state.form_key += 1
             st.rerun()
 
     st.markdown("---")
@@ -611,102 +676,46 @@ st.markdown(f"""
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ÁREA DE CARGA DE IMÁGENES
+# RESUMEN DEL LOTE Y BOTÓN DE ANÁLISIS
 # ─────────────────────────────────────────────────────────────────────────────
 
-col_upload, col_info = st.columns([3, 1])
-
-with col_upload:
-    uploaded_files = st.file_uploader(
-        "Sube las capturas de pantalla de los anuncios",
-        type=["png", "jpg", "jpeg", "webp"],
-        accept_multiple_files=True,
-        help="Capturas de Idealista, Fotocasa, Habitaclia, etc. Se procesarán en orden.",
-    )
-
-with col_info:
-    if uploaded_files:
-        st.metric("Imágenes cargadas", len(uploaded_files))
-        st.metric("URLs aportadas", len(urls))
-        if len(urls) < len(uploaded_files):
-            st.warning(f"Faltan {len(uploaded_files) - len(urls)} URL(s). Las fichas sin URL quedarán en blanco.")
-    else:
-        st.info("↑ Sube una o varias capturas para comenzar.")
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# BOTÓN DE PROCESAMIENTO
-# ─────────────────────────────────────────────────────────────────────────────
-
-if uploaded_files:
+if st.session_state.inputs:
     st.markdown("---")
-    col_btn, col_status = st.columns([2, 3])
+    _n = len(st.session_state.inputs)
+    st.markdown(f"### Lote cargado — {_n} comparable(s)")
 
-    with col_btn:
-        process_btn = st.button(
-            f"▶ Analizar {len(uploaded_files)} imagen(es) con Claude",
-            type="primary",
-            use_container_width=True,
-            disabled=not api_key,
+    for _item in st.session_state.inputs:
+        _url_label = _item["url"] or "—"
+        if len(_url_label) > 60:
+            _url_label = _url_label[:60] + "…"
+        _ref_label = _item["ref"] if _item["ref"] else "—"
+        st.markdown(
+            f"**{_item['num']}.** `{_item['image_name']}` · "
+            f"Estado: **{_item['estado']}** · "
+            f"URL: {_url_label} · Ref: {_ref_label}"
         )
-        if not api_key:
-            st.caption("⚠ Introduce la API Key en el panel lateral para continuar.")
 
-    if process_btn and api_key:
-        st.session_state.comparables = []
-
-        client = anthropic.Anthropic(api_key=api_key)
-        progress_bar = st.progress(0, text="Iniciando análisis…")
-        status_placeholder = col_status.empty()
-
-        errors_global = []
-
-        for i, f in enumerate(uploaded_files):
-            num   = i + 1
-            url_i = urls[i] if i < len(urls) else ""
-            ref_i = refs[i] if i < len(refs) else ""
-
-            progress_bar.progress(
-                i / len(uploaded_files),
-                text=f"Analizando comparable {num}/{len(uploaded_files)}: {f.name}",
-            )
-            status_placeholder.info(f"🔍 Procesando imagen {num}: **{f.name}**…")
-
-            try:
-                f.seek(0)
-                b64, mt = image_to_base64(f)
-                result = extract_comparable_from_image(
-                    client, b64, mt, num, url_i, fecha_str, ref_i
-                )
-                result["img_name"] = f.name
-                st.session_state.comparables.append(result)
-
-            except json.JSONDecodeError as e:
-                errors_global.append(f"Comparable {num} ({f.name}): JSON inválido — {e}")
-            except anthropic.APIError as e:
-                errors_global.append(f"Comparable {num} ({f.name}): Error API — {e}")
-            except Exception as e:
-                errors_global.append(f"Comparable {num} ({f.name}): Error inesperado — {e}")
-
-        progress_bar.progress(1.0, text="✅ Análisis completado")
-
-        if errors_global:
-            status_placeholder.error("\n".join(errors_global))
-        else:
-            status_placeholder.success(
-                f"✅ {len(st.session_state.comparables)} comparable(s) extraído(s) correctamente."
-            )
+    st.markdown("---")
+    st.button(
+        f"▶ Analizar {_n} comparable(s) con Claude",
+        type="primary",
+        disabled=True,
+        help="El análisis con Claude se adaptará en la siguiente fase de implementación.",
+    )
+    st.caption("⚙️ Análisis pendiente de adaptar al nuevo flujo guiado.")
+else:
+    st.info("Usa el panel izquierdo para añadir comparables al lote.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # RESULTADOS
 # ─────────────────────────────────────────────────────────────────────────────
 
-if st.session_state.comparables:
+if st.session_state.resultados:
     st.markdown("---")
-    st.markdown(f"### 📊 Resultados — {len(st.session_state.comparables)} comparable(s)")
+    st.markdown(f"### 📊 Resultados — {len(st.session_state.resultados)} comparable(s)")
 
-    for item in st.session_state.comparables:
+    for item in st.session_state.resultados:
         num       = item.get("comparable", "?")
         img_name  = item.get("img_name", "")
         campos    = item.get("campos", {})
@@ -743,7 +752,7 @@ if st.session_state.comparables:
 
     with col_dl2:
         try:
-            xlsx_bytes = build_xlsx_multisheet(st.session_state.comparables)
+            xlsx_bytes = build_xlsx_multisheet(st.session_state.resultados)
             fname = f"{nombre_archivo}.xlsx"
 
             st.download_button(
@@ -759,10 +768,10 @@ if st.session_state.comparables:
     with col_dl3:
         total_unknown = sum(
             len(item.get("flags", {}).get("campos_desconocidos", []))
-            for item in st.session_state.comparables
+            for item in st.session_state.resultados
         )
         st.metric("Campos a revisar", total_unknown, delta=None)
 
     # ── JSON bruto (expander colapsado) ──────────────────────────────────────
     with st.expander("🔎 Ver JSON extraído (debug)", expanded=False):
-        st.json(st.session_state.comparables)
+        st.json(st.session_state.resultados)
