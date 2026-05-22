@@ -223,6 +223,37 @@ def image_to_base64(uploaded_file) -> tuple[str, str]:
     return b64, mt
 
 
+def bytes_to_b64(data: bytes) -> str:
+    return base64.standard_b64encode(data).decode("utf-8")
+
+
+def crop_zones(img_bytes: bytes) -> dict[str, tuple[bytes, str]]:
+    """
+    Bloque 0: recorta la imagen en zonas estándar usando PIL.
+    Devuelve dict {nombre: (bytes_png, media_type)}.
+    """
+    from PIL import Image as PILImage
+    import io as _io
+
+    img = PILImage.open(_io.BytesIO(img_bytes))
+    w, h = img.size
+
+    zonas = {
+        "ZONA_FICHA":     img.crop((0, int(h*0.03), w, int(h*0.38))),
+        "ZONA_PRECIO":    img.crop((0, int(h*0.55), w, int(h*0.75))),
+        "ZONA_CABECERA":  img.crop((0, 0,            w, int(h*0.06))),
+        "ZONA_UBICACION": img.crop((0, int(h*0.80),  w, int(h*0.92))),
+        "ZONA_ANUNCIANTE":img.crop((0, int(h*0.10),  w, int(h*0.22))),
+    }
+
+    result = {}
+    for nombre, zona in zonas.items():
+        buf = _io.BytesIO()
+        zona.save(buf, format="PNG")
+        result[nombre] = (buf.getvalue(), "image/png")
+    return result
+
+
 def extract_comparable_from_image(
     client: anthropic.Anthropic,
     img_b64: str,
@@ -233,13 +264,58 @@ def extract_comparable_from_image(
     ref_catastral: str = "",
 ) -> dict:
     """
-    Llama a Claude con visión y devuelve el JSON de un comparable.
-    El preprocesado de imagen (Bloque 0) no puede ejecutarse en el servidor Streamlit Cloud
-    (sin PIL recortando zonas), así que se le instruye a Claude a hacer el análisis visual
-    cuidadoso directamente sobre la imagen completa de alta resolución.
+    Llama a Claude con visión aplicando el preprocesado del Bloque 0:
+    recorta la imagen en zonas y las envía junto con la imagen completa
+    para maximizar la precisión de lectura.
     """
-    user_msg = f"""Analiza esta imagen de anuncio inmobiliario y extrae todos los datos
-para generar la ficha de testigo de mercado.
+    # Decodificar bytes originales para recortar
+    img_bytes = base64.b64decode(img_b64)
+    zonas = crop_zones(img_bytes)
+
+    # Construir el mensaje multi-imagen: zonas + imagen completa
+    content_parts = []
+
+    zona_labels = {
+        "ZONA_CABECERA":   "ZONA_CABECERA — dirección, título, precio destacado",
+        "ZONA_FICHA":      "ZONA_FICHA — características: sup. construida, dormitorios, baños, dotaciones, año construcción, comercializador",
+        "ZONA_PRECIO":     "ZONA_PRECIO — precio exacto, precio/m², anejos incluidos",
+        "ZONA_UBICACION":  "ZONA_UBICACION — municipio, barrio, zona, CP",
+        "ZONA_ANUNCIANTE": "ZONA_ANUNCIANTE — nombre de la agencia / inmobiliaria anunciante",
+    }
+
+    for nombre, (zona_bytes, zona_mt) in zonas.items():
+        content_parts.append({
+            "type": "text",
+            "text": f"--- {zona_labels.get(nombre, nombre)} ---"
+        })
+        content_parts.append({
+            "type": "image",
+            "source": {
+                "type": "base64",
+                "media_type": zona_mt,
+                "data": bytes_to_b64(zona_bytes),
+            }
+        })
+
+    # Imagen completa al final como referencia
+    content_parts.append({
+        "type": "text",
+        "text": "--- IMAGEN COMPLETA (referencia) ---"
+    })
+    content_parts.append({
+        "type": "image",
+        "source": {
+            "type": "base64",
+            "media_type": img_media_type,
+            "data": img_b64,
+        }
+    })
+
+    user_msg = f"""Se te envían 5 recortes de zonas específicas del anuncio (ZONA_CABECERA, ZONA_FICHA,
+ZONA_PRECIO, ZONA_UBICACION, ZONA_ANUNCIANTE) seguidos de la imagen completa como referencia.
+
+Lee PRIMERO cada zona recortada con atención — el texto es más legible en los recortes.
+Usa la imagen completa solo para confirmar datos dudosos.
 
 DATOS APORTADOS POR EL USUARIO:
 - Número de comparable: {num}
@@ -247,32 +323,23 @@ DATOS APORTADOS POR EL USUARIO:
 - Fecha de aportación: {fecha}
 - Referencia catastral: {ref_catastral if ref_catastral else ""}
 
-INSTRUCCIÓN CRÍTICA: Lee la imagen con extrema atención antes de extraer cualquier dato.
-Presta especial atención a valores numéricos (precio, superficies, dormitorios, año de construcción).
-Si algún valor es ambiguo, márcalo como DESCONOCIDO en lugar de asumir.
+INSTRUCCIONES CRÍTICAS:
+1. El COMERCIALIZADOR es el nombre de la inmobiliaria o agencia anunciante visible en
+   ZONA_ANUNCIANTE o ZONA_FICHA. NUNCA es el nombre del portal (Idealista, Fotocasa, etc.).
+   Si aparece "RMA", "Engel & Völkers", "Re/Max" u otro nombre de agencia → úsalo.
+2. Lee el precio con máxima atención en ZONA_PRECIO.
+3. Lee superficies y dormitorios en ZONA_FICHA.
+4. Si algún valor es ambiguo → DESCONOCIDO.
 
 Devuelve ÚNICAMENTE el objeto JSON válido, sin texto adicional, sin marcadores de código."""
+
+    content_parts.append({"type": "text", "text": user_msg})
 
     response = client.messages.create(
         model="claude-opus-4-5",
         max_tokens=2000,
         system=SYSTEM_PROMPT,
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": img_media_type,
-                            "data": img_b64,
-                        },
-                    },
-                    {"type": "text", "text": user_msg},
-                ],
-            }
-        ],
+        messages=[{"role": "user", "content": content_parts}],
     )
 
     raw = response.content[0].text.strip()
