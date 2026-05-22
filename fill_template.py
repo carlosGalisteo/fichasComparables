@@ -263,7 +263,7 @@ def fill_comparable(template_path, out_path, num, campos, flags):
     set_val(ws, "F3",  campos.get("F3"),        red=rojo("F3"))
     set_val(ws, "H3",  campos.get("H3"))
     set_val(ws, "H2",  "Santa Cruz de Tenerife")
-    set_val(ws, "B4",  "")
+    set_val(ws, "B4",  campos.get("B4", ""))
 
     set_val(ws, "B5",  campos.get("B5"),        red=rojo("B5"))
     set_val(ws, "D5",  campos.get("D5"),        red=rojo("D5"))
