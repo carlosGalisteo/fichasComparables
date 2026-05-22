@@ -435,12 +435,19 @@ with st.sidebar:
     st.markdown("### ⚙️ Configuración")
     st.markdown("---")
 
-    api_key = st.text_input(
-        "API Key de Anthropic",
-        type="password",
-        placeholder="sk-ant-...",
-        help="Necesaria para analizar imágenes con Claude. No se almacena.",
-    )
+    # Leer API key desde Streamlit Secrets (despliegue en cloud)
+    # o permitir entrada manual como fallback
+    _secret_key = st.secrets.get("ANTHROPIC_API_KEY", "") if hasattr(st, "secrets") else ""
+    if _secret_key:
+        api_key = _secret_key
+        st.success("🔑 API Key configurada", icon="✅")
+    else:
+        api_key = st.text_input(
+            "API Key de Anthropic",
+            type="password",
+            placeholder="sk-ant-...",
+            help="Necesaria para analizar imágenes con Claude. No se almacena.",
+        )
 
     st.markdown("---")
     st.markdown("### 📋 Datos del lote")
