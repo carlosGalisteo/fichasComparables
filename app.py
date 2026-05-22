@@ -40,66 +40,228 @@ st.markdown("""
     font-family: 'DM Sans', sans-serif;
   }
 
-  /* Sidebar */
+  /* ── Sidebar — fondo naranja corporativo ──────────────────────────────────── */
   [data-testid="stSidebar"] {
-    background: #0f1117;
-    border-right: 1px solid #1e2130;
-  }
-  [data-testid="stSidebar"] * {
-    color: #e0e4f0 !important;
-  }
-  [data-testid="stSidebar"] .stTextInput input,
-  [data-testid="stSidebar"] .stDateInput input,
-  [data-testid="stSidebar"] .stTextArea textarea {
-    background: #1a1d2e !important;
-    border: 1px solid #2d3150 !important;
-    color: #e0e4f0 !important;
-    border-radius: 6px !important;
-    font-family: 'DM Mono', monospace !important;
-    font-size: 12px !important;
-  }
-  [data-testid="stSidebar"] .stTextArea textarea::placeholder {
-    color: #4b5563 !important;
+    background: #dd4717;
+    border-right: none;
   }
 
-  /* Header principal */
+  /* Títulos de comparable (h2) — encabezado de bloque, prominente */
+  [data-testid="stSidebar"] h2 {
+    color: #ffffff !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+    border-bottom: 2px solid rgba(255,255,255,0.25) !important;
+    padding-bottom: 7px !important;
+    margin-bottom: 12px !important;
+    margin-top: 4px !important;
+  }
+
+  /* Etiquetas de sección (h3) — small caps */
+  [data-testid="stSidebar"] h3 {
+    color: #ffffff !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.07em !important;
+    border-bottom: 1px solid rgba(255,255,255,0.2) !important;
+    padding-bottom: 5px !important;
+    margin-bottom: 10px !important;
+    padding-left: 0 !important;
+    border-left: none !important;
+  }
+
+  /* Labels de campos */
+  [data-testid="stSidebar"] label {
+    color: rgba(255,255,255,0.88) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+  }
+
+  /* Captions */
+  [data-testid="stSidebar"] [data-testid="stCaptionContainer"] {
+    color: rgba(255,255,255,0.7) !important;
+  }
+
+  /* Separadores */
+  [data-testid="stSidebar"] hr {
+    border-color: rgba(255,255,255,0.15) !important;
+    margin: 8px 0 !important;
+  }
+
+  /* Alertas (API key ok) */
+  [data-testid="stSidebar"] [data-testid="stAlert"] {
+    background: rgba(255,255,255,0.15) !important;
+    border: none !important;
+    border-radius: 6px !important;
+  }
+  [data-testid="stSidebar"] [data-testid="stAlert"] p {
+    color: #ffffff !important;
+  }
+
+  /* Inputs de texto y fecha — fondo blanco, texto oscuro */
+  [data-testid="stSidebar"] input[type="text"],
+  [data-testid="stSidebar"] input[type="password"],
+  [data-testid="stSidebar"] input[type="number"] {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: none !important;
+    border-radius: 6px !important;
+    font-size: 13px !important;
+  }
+  [data-testid="stSidebar"] input::placeholder {
+    color: #9ca3af !important;
+  }
+
+  /* Selectbox — fondo blanco, texto oscuro */
+  [data-testid="stSidebar"] div[data-baseweb="select"] > div:first-child {
+    background: #ffffff !important;
+    border: none !important;
+    border-radius: 6px !important;
+  }
+  [data-testid="stSidebar"] div[data-baseweb="select"] > div:first-child,
+  [data-testid="stSidebar"] div[data-baseweb="select"] > div:first-child * {
+    color: #111827 !important;
+  }
+
+  /* File uploader — dropzone */
+  [data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] {
+    background: rgba(255,255,255,0.1) !important;
+    border: 1px dashed rgba(255,255,255,0.4) !important;
+    border-radius: 8px !important;
+  }
+  /* Botón "Browse files" dentro del dropzone */
+  [data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] button {
+    background: #343a40 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 6px !important;
+  }
+  [data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] button:hover {
+    background: #495057 !important;
+  }
+  /* Texto de instrucción del dropzone */
+  [data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] small,
+  [data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] span {
+    color: rgba(255,255,255,0.85) !important;
+  }
+
+  /* Tarjetas de comparables guardados (filas de st.columns) */
+  [data-testid="stSidebar"] [data-testid="stHorizontalBlock"] {
+    background: rgba(255,255,255,0.92) !important;
+    border-radius: 8px !important;
+    padding: 6px 10px !important;
+    margin-bottom: 4px !important;
+  }
+  [data-testid="stSidebar"] [data-testid="stHorizontalBlock"] p,
+  [data-testid="stSidebar"] [data-testid="stHorizontalBlock"] small {
+    color: #111827 !important;
+  }
+
+  /* Botón ✕ dentro de tarjeta — rojo discreto */
+  [data-testid="stSidebar"] [data-testid="stHorizontalBlock"] .stButton > button {
+    background: transparent !important;
+    color: #dc2626 !important;
+    border: 1px solid rgba(220,38,38,0.4) !important;
+    border-radius: 4px !important;
+    font-size: 12px !important;
+    box-shadow: none !important;
+  }
+  [data-testid="stSidebar"] [data-testid="stHorizontalBlock"] .stButton > button:hover {
+    background: #fef2f2 !important;
+    color: #b91c1c !important;
+    border-color: #dc2626 !important;
+  }
+
+  /* Botón secundario en sidebar (Limpiar todo) — destructivo */
+  [data-testid="stSidebar"] .stButton > button:not([kind="primary"]) {
+    background: rgba(255,255,255,0.92) !important;
+    color: #dc2626 !important;
+    border: 1px solid rgba(220,38,38,0.35) !important;
+    border-radius: 6px !important;
+    font-size: 13px !important;
+  }
+  [data-testid="stSidebar"] .stButton > button:not([kind="primary"]):hover {
+    background: #ffffff !important;
+    border-color: #dc2626 !important;
+  }
+
+  /* Espaciado compacto entre campos */
+  [data-testid="stSidebar"] .stTextInput,
+  [data-testid="stSidebar"] .stSelectbox,
+  [data-testid="stSidebar"] .stDateInput,
+  [data-testid="stSidebar"] .stFileUploader {
+    margin-bottom: 6px !important;
+  }
+
+  /* ── Cabecera principal ───────────────────────────────────────────────────── */
   .app-header {
-    background: linear-gradient(135deg, #0f1117 0%, #1a1d2e 100%);
-    border: 1px solid #2d3150;
-    border-radius: 12px;
-    padding: 24px 32px;
-    margin-bottom: 24px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 18px 28px;
+    margin-bottom: 16px;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
   .app-header h1 {
-    color: #e0e4f0;
-    font-size: 22px;
-    font-weight: 600;
+    color: #111827;
+    font-size: 24px;
+    font-weight: 700;
     margin: 0;
+    line-height: 1.2;
   }
   .app-header p {
-    color: #6b7280;
+    color: #4b5563;
     font-size: 13px;
     margin: 4px 0 0 0;
   }
 
-  /* Cards de comparable */
+  /* ── Tarjetas del resumen del lote (zona central) ────────────────────────── */
+  .lote-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 8px 14px;
+    margin-bottom: 6px;
+  }
+  .lote-num {
+    background: #dd4717;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .lote-name { font-size: 13px; font-weight: 500; color: #111827; }
+  .lote-meta { font-size: 11px; color: #6b7280; margin-top: 1px; }
+
+  /* ── Cards de resultados ─────────────────────────────────────────────────── */
   .comparable-card {
-    background: #fafafa;
+    background: #ffffff;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
-    padding: 16px 20px;
-    margin-bottom: 12px;
+    padding: 14px 18px;
+    margin-bottom: 10px;
     transition: border-color 0.2s;
   }
-  .comparable-card:hover { border-color: #3b5bdb; }
-  .comparable-card.processing { border-color: #f59e0b; background: #fffbeb; }
+  .comparable-card:hover { border-color: #dd4717; }
   .comparable-card.done { border-color: #10b981; background: #f0fdf4; }
   .comparable-card.error { border-color: #ef4444; background: #fef2f2; }
 
-  /* Badges de campo desconocido */
+  /* ── Badges ──────────────────────────────────────────────────────────────── */
   .badge-unknown {
     display: inline-block;
     background: #fee2e2;
@@ -123,7 +285,7 @@ st.markdown("""
     font-family: 'DM Mono', monospace;
   }
 
-  /* Tabla de datos extraídos */
+  /* ── Tabla de datos extraídos ────────────────────────────────────────────── */
   .data-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -131,7 +293,7 @@ st.markdown("""
     margin-top: 12px;
   }
   .data-cell {
-    background: white;
+    background: #ffffff;
     border: 1px solid #e5e7eb;
     border-radius: 6px;
     padding: 8px 10px;
@@ -152,24 +314,9 @@ st.markdown("""
   }
   .data-cell .value.unknown { color: #dc2626; }
 
-  /* Botón primario */
-  .stButton > button[kind="primary"] {
-    background: #3b5bdb !important;
-    border: none !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.02em !important;
-    transition: all 0.2s !important;
-  }
-  .stButton > button[kind="primary"]:hover {
-    background: #2f4cc0 !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 12px rgba(59, 91, 219, 0.3) !important;
-  }
-
-  /* Notas del analista */
+  /* ── Notas del analista ──────────────────────────────────────────────────── */
   .analyst-notes {
-    background: #f8f9fa;
+    background: #fffbeb;
     border-left: 3px solid #f59e0b;
     padding: 10px 14px;
     border-radius: 0 6px 6px 0;
@@ -179,7 +326,7 @@ st.markdown("""
     font-style: italic;
   }
 
-  /* Download button */
+  /* ── Botón de descarga Excel — verde ─────────────────────────────────────── */
   .stDownloadButton > button {
     background: #059669 !important;
     color: white !important;
@@ -191,10 +338,52 @@ st.markdown("""
     background: #047857 !important;
   }
 
-  /* Ocultar hamburger y footer */
+  /* ── Botón primario global — naranja corporativo ─────────────────────────── */
+  .stButton > button[kind="primary"] {
+    background: #dd4717 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.02em !important;
+    transition: background 0.18s !important;
+  }
+  .stButton > button[kind="primary"]:hover {
+    background: #c03d11 !important;
+    box-shadow: 0 3px 10px rgba(221,71,23,0.3) !important;
+  }
+  .stButton > button[kind="primary"]:disabled {
+    background: #f3c8b5 !important;
+    color: #a05030 !important;
+    box-shadow: none !important;
+  }
+
+  /* ── Botón primario en sidebar — verde (DESPUÉS del naranja global) ───────── */
+  /* Al ir después, gana por orden cuando la especificidad es igual */
+  [data-testid="stSidebar"] .stButton > button[kind="primary"] {
+    background: #15803d !important;
+    color: #ffffff !important;
+    border: none !important;
+    font-weight: 700 !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+  [data-testid="stSidebar"] .stButton > button[kind="primary"]:hover {
+    background: #166534 !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+  [data-testid="stSidebar"] .stButton > button[kind="primary"]:disabled {
+    background: rgba(21,128,61,0.35) !important;
+    color: rgba(255,255,255,0.6) !important;
+    box-shadow: none !important;
+  }
+
+  /* ── Ocultar elementos de Streamlit ──────────────────────────────────────── */
+  /* header NO se oculta: contiene el toggle del sidebar al plegarlo */
   #MainMenu { visibility: hidden; }
   footer { visibility: hidden; }
-  header { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -538,7 +727,7 @@ if "form_key" not in st.session_state:
 # ─────────────────────────────────────────────────────────────────────────────
 
 with st.sidebar:
-    st.markdown("### ⚙️ Configuración")
+    st.markdown("### Configuración")
     st.markdown("---")
 
     # Leer API key desde Streamlit Secrets (despliegue en cloud)
@@ -559,7 +748,7 @@ with st.sidebar:
         )
 
     st.markdown("---")
-    st.markdown("### 📋 Datos del lote")
+    st.markdown("### Datos del lote")
 
     fecha_aportacion = st.date_input(
         "Fecha de aportación",
@@ -572,7 +761,7 @@ with st.sidebar:
     # ── Formulario de entrada comparable a comparable ──────────────────────────
     st.markdown("---")
     _next_num = len(st.session_state.inputs) + 1
-    st.markdown(f"### Comparable {_next_num}")
+    st.markdown(f"## COMPARABLE {_next_num}")
 
     _uploaded = st.file_uploader(
         "Imagen del anuncio",
@@ -598,6 +787,7 @@ with st.sidebar:
 
     if st.button(
         "Guardar comparable",
+        type="primary",
         use_container_width=True,
         disabled=(_uploaded is None),
         help="Sube una imagen para poder guardar el comparable.",
@@ -642,10 +832,10 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown(
-        "<div style='font-size:11px;color:#4b5563;text-align:center;'>"
+        "<div style='font-size:11px;color:rgba(255,255,255,0.65);text-align:center;'>"
         "Fichas Comparables · Tenerife<br>"
         "Powered by Claude Vision<br>"
-        "<span style='color:#6366f1;'>claude-opus-4-5</span></div>",
+        "<span style='color:rgba(255,255,255,0.9);font-weight:600;'>claude-opus-4-5</span></div>",
         unsafe_allow_html=True,
     )
 
@@ -660,7 +850,7 @@ from pathlib import Path as _Path
 _logo_path = _Path(__file__).parent / "icono.png"
 if _logo_path.exists():
     _logo_b64 = _b64.b64encode(_logo_path.read_bytes()).decode()
-    _logo_html = f'<img src="data:image/png;base64,{_logo_b64}" style="height:52px;width:auto;">'
+    _logo_html = f'<img src="data:image/png;base64,{_logo_b64}" style="height:56px;width:auto;">'
 else:
     _logo_html = '<div style="font-size:36px;">🏠</div>'
 
@@ -684,16 +874,20 @@ if st.session_state.inputs:
     _n = len(st.session_state.inputs)
     st.markdown(f"### Lote cargado — {_n} comparable(s)")
 
+    _lote_html = ""
     for _item in st.session_state.inputs:
-        _url_label = _item["url"] or "—"
-        if len(_url_label) > 60:
-            _url_label = _url_label[:60] + "…"
-        _ref_label = _item["ref"] if _item["ref"] else "—"
-        st.markdown(
-            f"**{_item['num']}.** `{_item['image_name']}` · "
-            f"Estado: **{_item['estado']}** · "
-            f"URL: {_url_label} · Ref: {_ref_label}"
+        _url_ok = "✓" if _item["url"] else "—"
+        _ref_raw = _item.get("ref", "")
+        _ref_disp = (_ref_raw[:18] + "…") if len(_ref_raw) > 18 else (_ref_raw or "—")
+        _lote_html += (
+            f'<div class="lote-row">'
+            f'<div class="lote-num">{_item["num"]}</div>'
+            f'<div>'
+            f'<div class="lote-name">{_item["image_name"]}</div>'
+            f'<div class="lote-meta">Estado: {_item["estado"]} &nbsp;·&nbsp; URL: {_url_ok} &nbsp;·&nbsp; Ref: {_ref_disp}</div>'
+            f'</div></div>'
         )
+    st.markdown(_lote_html, unsafe_allow_html=True)
 
     st.markdown("---")
     st.button(
