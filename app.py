@@ -44,9 +44,15 @@ FIELD_LABELS = {
 # CONFIGURACIÓN DE PÁGINA
 # ─────────────────────────────────────────────────────────────────────────────
 
+try:
+    from PIL import Image as _PILFavicon
+    _favicon = _PILFavicon.open(Path(__file__).parent / "icono.png")
+except Exception:
+    _favicon = "🏠"
+
 st.set_page_config(
-    page_title="Fichas Comparables · Tenerife",
-    page_icon="🏠",
+    page_title="Fichas comparables · CITAE",
+    page_icon=_favicon,
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -228,7 +234,7 @@ st.markdown("""
     margin-bottom: 16px;
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 28px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
   .app-header h1 {
@@ -878,7 +884,7 @@ with st.sidebar:
 # Logo en base64 para incrustar en el header
 import base64 as _b64
 from pathlib import Path as _Path
-_logo_path = _Path(__file__).parent / "icono.png"
+_logo_path = _Path(__file__).parent / "CITAE.png"
 if _logo_path.exists():
     _logo_b64 = _b64.b64encode(_logo_path.read_bytes()).decode()
     _logo_html = f'<img src="data:image/png;base64,{_logo_b64}" style="height:56px;width:auto;">'
