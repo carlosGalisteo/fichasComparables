@@ -11,6 +11,7 @@ import io
 import os
 import shutil
 import tempfile
+from copy import copy as _copy
 from datetime import date
 from pathlib import Path
 import openpyxl
@@ -445,6 +446,122 @@ def bytes_to_b64(data: bytes) -> str:
     return base64.standard_b64encode(data).decode("utf-8")
 
 
+_MAX_PART_BYTES = 5 * 1024 * 1024  # 5 MB — límite de Claude Vision por imagen
+
+
+def _make_image_part(img, label: str) -> dict:
+    """
+    Convierte un PIL Image a un ImagePart JPEG con validación.
+    Recomprime progresivamente (85→80→75) si supera 5 MB.
+    Devuelve dict: bytes, media_type, width, height, size_bytes, label, ok, error.
+    """
+    if img.mode not in ("RGB", "L"):
+        img = img.convert("RGB")
+    jpeg_bytes = b""
+    for q in (85, 80, 75):
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=q, optimize=True)
+        jpeg_bytes = buf.getvalue()
+        if len(jpeg_bytes) <= _MAX_PART_BYTES:
+            break
+    w, h = img.size
+    size = len(jpeg_bytes)
+    errors = []
+    if w > 7600:
+        errors.append(f"ancho {w} px > 7600")
+    if h > 7600:
+        errors.append(f"alto {h} px > 7600")
+    if size > _MAX_PART_BYTES:
+        errors.append(f"peso {size / 1048576:.2f} MB > 5 MB")
+    return {
+        "bytes":      jpeg_bytes,
+        "media_type": "image/jpeg",
+        "width":      w,
+        "height":     h,
+        "size_bytes": size,
+        "label":      label,
+        "ok":         len(errors) == 0,
+        "error":      "; ".join(errors),
+    }
+
+
+def resize_to_fit(img_bytes: bytes, label: str = "", max_dim: int = 7600) -> dict:
+    """
+    Redimensiona proporcionalmente si alguna dimensión supera max_dim.
+    Siempre devuelve ImagePart JPEG (aunque no redimensione).
+    """
+    from PIL import Image as _PIL
+    img = _PIL.open(io.BytesIO(img_bytes))
+    w, h = img.size
+    if max(w, h) > max_dim:
+        scale = max_dim / max(w, h)
+        img = img.resize((int(w * scale), int(h * scale)), _PIL.LANCZOS)
+    return _make_image_part(img, label)
+
+
+def split_or_resize(
+    img_bytes: bytes,
+    max_dim: int = 7600,
+    resize_threshold: int = 11000,
+    overlap: int = 250,
+) -> list[dict]:
+    """
+    Devuelve lista de ImagePart JPEG:
+    - [original→jpeg]  si max(w,h) <= max_dim
+    - [resized→jpeg]   si max(w,h) <= resize_threshold (reducción ≤31%)
+    - [banda1, ...]    si max(w,h) > resize_threshold (fragmentación con solape)
+    Nunca descarta ninguna parte de la imagen.
+    """
+    from PIL import Image as _PIL
+    img = _PIL.open(io.BytesIO(img_bytes))
+    w, h = img.size
+    longest = max(w, h)
+
+    if longest <= max_dim:
+        return [_make_image_part(img, "IMAGEN COMPLETA (referencia)")]
+
+    if longest <= resize_threshold:
+        scale = max_dim / longest
+        img = img.resize((int(w * scale), int(h * scale)), _PIL.LANCZOS)
+        return [_make_image_part(img, "IMAGEN COMPLETA (referencia, redimensionada)")]
+
+    step = max_dim - overlap
+    parts = []
+    if h >= w:
+        tops = []
+        top = 0
+        while top < h:
+            bottom = min(top + max_dim, h)
+            tops.append((top, bottom))
+            if bottom == h:
+                break
+            top += step
+        n = len(tops)
+        for i, (top, bottom) in enumerate(tops):
+            band = img.crop((0, top, w, bottom))
+            parts.append(_make_image_part(
+                band,
+                f"Imagen completa del anuncio — fragmento {i + 1} de {n}",
+            ))
+    else:
+        lefts = []
+        left = 0
+        while left < w:
+            right = min(left + max_dim, w)
+            lefts.append((left, right))
+            if right == w:
+                break
+            left += step
+        n = len(lefts)
+        for i, (left, right) in enumerate(lefts):
+            band = img.crop((left, 0, right, h))
+            parts.append(_make_image_part(
+                band,
+                f"Imagen completa del anuncio — fragmento {i + 1} de {n}",
+            ))
+    return parts
+
+
 def crop_zones(img_bytes: bytes) -> dict[str, tuple[bytes, str]]:
     """
     Bloque 0: recorta la imagen en zonas estándar usando PIL.
@@ -472,6 +589,29 @@ def crop_zones(img_bytes: bytes) -> dict[str, tuple[bytes, str]]:
     return result
 
 
+_ZONA_LABELS = {
+    "ZONA_CABECERA":   "ZONA_CABECERA — dirección, título, precio destacado",
+    "ZONA_FICHA":      "ZONA_FICHA — características: sup. construida, dormitorios, baños, dotaciones, año construcción, comercializador",
+    "ZONA_PRECIO":     "ZONA_PRECIO — precio exacto, precio/m², anejos incluidos",
+    "ZONA_UBICACION":  "ZONA_UBICACION — municipio, barrio, zona, CP",
+    "ZONA_ANUNCIANTE": "ZONA_ANUNCIANTE — nombre de la agencia / inmobiliaria anunciante",
+}
+
+
+def prepare_image_parts(img_bytes: bytes) -> list[dict]:
+    """
+    Prepara todas las partes ImagePart JPEG para un comparable.
+    No llama a Claude ni a Streamlit.
+    Reutilizable para validación local y para el análisis real.
+    """
+    parts = []
+    for nombre, (zona_bytes, _) in crop_zones(img_bytes).items():
+        parts.append(resize_to_fit(zona_bytes, label=_ZONA_LABELS.get(nombre, nombre)))
+    for fpart in split_or_resize(img_bytes):
+        parts.append(fpart)
+    return parts
+
+
 def extract_comparable_from_image(
     client: anthropic.Anthropic,
     img_b64: str,
@@ -486,48 +626,49 @@ def extract_comparable_from_image(
     recorta la imagen en zonas y las envía junto con la imagen completa
     para maximizar la precisión de lectura.
     """
-    # Decodificar bytes originales para recortar
-    img_bytes = base64.b64decode(img_b64)
-    zonas = crop_zones(img_bytes)
+    # Preparar partes JPEG (zonas + imagen completa normalizada)
+    _all_parts = prepare_image_parts(base64.b64decode(img_b64))
 
-    # Construir el mensaje multi-imagen: zonas + imagen completa
+    # Construir el mensaje multi-imagen
     content_parts = []
-
-    zona_labels = {
-        "ZONA_CABECERA":   "ZONA_CABECERA — dirección, título, precio destacado",
-        "ZONA_FICHA":      "ZONA_FICHA — características: sup. construida, dormitorios, baños, dotaciones, año construcción, comercializador",
-        "ZONA_PRECIO":     "ZONA_PRECIO — precio exacto, precio/m², anejos incluidos",
-        "ZONA_UBICACION":  "ZONA_UBICACION — municipio, barrio, zona, CP",
-        "ZONA_ANUNCIANTE": "ZONA_ANUNCIANTE — nombre de la agencia / inmobiliaria anunciante",
-    }
-
-    for nombre, (zona_bytes, zona_mt) in zonas.items():
-        content_parts.append({
-            "type": "text",
-            "text": f"--- {zona_labels.get(nombre, nombre)} ---"
-        })
+    for _p in _all_parts:
+        content_parts.append({"type": "text", "text": f"--- {_p['label']} ---"})
         content_parts.append({
             "type": "image",
             "source": {
                 "type": "base64",
-                "media_type": zona_mt,
-                "data": bytes_to_b64(zona_bytes),
-            }
+                "media_type": _p["media_type"],
+                "data": bytes_to_b64(_p["bytes"]),
+            },
         })
 
-    # Imagen completa al final como referencia
-    content_parts.append({
-        "type": "text",
-        "text": "--- IMAGEN COMPLETA (referencia) ---"
-    })
-    content_parts.append({
-        "type": "image",
-        "source": {
-            "type": "base64",
-            "media_type": img_media_type,
-            "data": img_b64,
-        }
-    })
+    # ── Diagnóstico local visible en Streamlit ────────────────────────────────
+    with st.expander(f"🔎 Diagnóstico imágenes — comparable {num}", expanded=False):
+        _diag_md = (
+            "| Etiqueta | Dimensiones | Peso | Tipo | Estado |\n"
+            "|---|---|---|---|---|\n"
+        )
+        for _p in _all_parts:
+            _st = "✅ OK" if _p["ok"] else f"❌ {_p['error']}"
+            _diag_md += (
+                f"| {_p['label'][:45]} | {_p['width']}×{_p['height']} px"
+                f" | {_p['size_bytes'] / 1048576:.2f} MB"
+                f" | {_p['media_type']} | {_st} |\n"
+            )
+        st.markdown(_diag_md)
+
+    # ── Validación local — no llamar a Claude si alguna parte no cumple ───────
+    _bad_parts = [_p for _p in _all_parts if not _p["ok"]]
+    if _bad_parts:
+        _detail = "\n".join(
+            f"  • {_p['label']}: {_p['width']}×{_p['height']} px, "
+            f"{_p['size_bytes'] / 1048576:.2f} MB, {_p['media_type']} — {_p['error']}"
+            for _p in _bad_parts
+        )
+        raise ValueError(
+            f"Comparable {num}: partes no válidas para Claude Vision "
+            f"(no se ha realizado la llamada a la API):\n{_detail}"
+        )
 
     user_msg = f"""Se te envían 5 recortes de zonas específicas del anuncio (ZONA_CABECERA, ZONA_FICHA,
 ZONA_PRECIO, ZONA_UBICACION, ZONA_ANUNCIANTE) seguidos de la imagen completa como referencia.
@@ -601,6 +742,8 @@ def build_xlsx_multisheet(comparables_data: list[dict]) -> bytes:
             for shname in wb_src.sheetnames:
                 ws_src = wb_src[shname]
                 ws_dst = wb_final.create_sheet(title=shname)
+                # Preservar estado oculto/visible (e.g. hojas _LISTAS_*)
+                ws_dst.sheet_state = ws_src.sheet_state
                 for row in ws_src.iter_rows():
                     for cell in row:
                         new_cell = ws_dst.cell(
@@ -617,6 +760,12 @@ def build_xlsx_multisheet(comparables_data: list[dict]) -> bytes:
                     ws_dst.column_dimensions[col_dim.index].width = col_dim.width
                 for row_dim in ws_src.row_dimensions.values():
                     ws_dst.row_dimensions[row_dim.index].height = row_dim.height
+                # Copiar celdas combinadas
+                for merge_range in ws_src.merged_cells.ranges:
+                    ws_dst.merge_cells(str(merge_range))
+                # Copiar validaciones de datos (desplegables)
+                for dv in ws_src.data_validations.dataValidation:
+                    ws_dst.add_data_validation(_copy(dv))
 
         buf = io.BytesIO()
         wb_final.save(buf)
@@ -928,6 +1077,39 @@ if st.session_state.inputs:
 
     st.markdown("---")
     _can_analyze = bool(api_key) and bool(st.session_state.inputs)
+
+    if st.button(
+        "🔎 Validar imágenes sin llamar a Claude",
+        disabled=not st.session_state.inputs,
+        help="Comprueba que todas las imágenes cumplen los límites de Claude Vision sin gastar tokens.",
+        use_container_width=True,
+    ):
+        _val_ok = True
+        for _vinp in st.session_state.inputs:
+            _vparts = prepare_image_parts(_vinp["image_bytes"])
+            _vbad   = [_p for _p in _vparts if not _p["ok"]]
+            _vicon  = "✅" if not _vbad else "❌"
+            with st.expander(
+                f"{_vicon} Comparable {_vinp['num']} — {_vinp['image_name']}",
+                expanded=bool(_vbad),
+            ):
+                _vmd = (
+                    "| Etiqueta | Dimensiones | Peso | Tipo | Estado |\n"
+                    "|---|---|---|---|---|\n"
+                )
+                for _p in _vparts:
+                    _vst = "✅ OK" if _p["ok"] else f"❌ {_p['error']}"
+                    _vmd += (
+                        f"| {_p['label'][:45]} | {_p['width']}×{_p['height']} px"
+                        f" | {_p['size_bytes'] / 1048576:.2f} MB"
+                        f" | {_p['media_type']} | {_vst} |\n"
+                    )
+                st.markdown(_vmd)
+            if _vbad:
+                _val_ok = False
+        if _val_ok:
+            st.success("✅ Todas las imágenes son válidas para Claude Vision.")
+
     _help_btn = (
         "Introduce una API Key de Anthropic en el panel izquierdo."
         if not api_key else ""
