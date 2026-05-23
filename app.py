@@ -100,7 +100,7 @@ st.markdown("""
   /* Etiquetas de sección (h3) — small caps */
   [data-testid="stSidebar"] h3 {
     color: #101828 !important;
-    font-size: 11px !important;
+    font-size: 13px !important;
     font-weight: 700 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.07em !important;
@@ -1012,28 +1012,14 @@ if "tipologia_actual" not in st.session_state:
 # SIDEBAR — CONFIGURACIÓN
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Leer API key desde Streamlit Secrets antes de renderizar el sidebar,
+# para que api_key quede disponible globalmente tras el bloque with st.sidebar.
+try:
+    _secret_key = st.secrets.get("ANTHROPIC_API_KEY", "")
+except Exception:
+    _secret_key = ""
+
 with st.sidebar:
-    st.markdown("### Configuración")
-    st.markdown("---")
-
-    # Leer API key desde Streamlit Secrets (despliegue en cloud)
-    # o permitir entrada manual como fallback
-    try:
-        _secret_key = st.secrets.get("ANTHROPIC_API_KEY", "")
-    except Exception:
-        _secret_key = ""
-    if _secret_key:
-        api_key = _secret_key
-        st.success("🔑 API Key configurada", icon="✅")
-    else:
-        api_key = st.text_input(
-            "API Key de Anthropic",
-            type="password",
-            placeholder="sk-ant-...",
-            help="Necesaria para analizar imágenes con Claude. No se almacena.",
-        )
-
-    st.markdown("---")
     st.markdown("### Datos del lote")
 
     fecha_aportacion = st.date_input(
@@ -1117,11 +1103,22 @@ with st.sidebar:
             st.rerun()
 
     st.markdown("---")
+    with st.expander("Configuración avanzada", expanded=False):
+        if _secret_key:
+            api_key = _secret_key
+            st.success("API Key configurada")
+        else:
+            api_key = st.text_input(
+                "API Key de Anthropic",
+                type="password",
+                placeholder="sk-ant-...",
+                help="Necesaria para analizar imágenes con Claude. No se almacena.",
+            )
+
     st.markdown(
-        "<div style='font-size:11px;color:rgba(255,255,255,0.65);text-align:center;'>"
-        "Fichas Comparables · Tenerife<br>"
-        "Powered by Claude Vision<br>"
-        "<span style='color:rgba(255,255,255,0.9);font-weight:600;'>claude-opus-4-5</span></div>",
+        "<div style='font-size:11px;color:#9ca3af;text-align:center;margin-top:8px;'>"
+        "Fichas Comparables · CITAE arquitectura<br>"
+        "Procesamiento asistido por Claude Vision</div>",
         unsafe_allow_html=True,
     )
 
@@ -1145,7 +1142,7 @@ st.markdown(f"""
   {_logo_html}
   <div>
     <h1>Fichas de Testigos de Mercado</h1>
-    <p>Extracción automática de comparables inmobiliarios · Tenerife · Claude Vision</p>
+    <p>Extracción automática de datos de ofertas inmobiliarias</p>
   </div>
 </div>
 """, unsafe_allow_html=True)
