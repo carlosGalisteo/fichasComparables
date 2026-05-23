@@ -80,18 +80,18 @@ st.markdown("""
 
   /* ── Sidebar — fondo naranja corporativo ──────────────────────────────────── */
   [data-testid="stSidebar"] {
-    background: #dd4717;
-    border-right: none;
+    background: #f0f4f8;
+    border-right: 1px solid #bcccdc;
   }
 
   /* Títulos de comparable (h2) — encabezado de bloque, prominente */
   [data-testid="stSidebar"] h2 {
-    color: #ffffff !important;
+    color: #101828 !important;
     font-size: 16px !important;
     font-weight: 700 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.06em !important;
-    border-bottom: 2px solid rgba(255,255,255,0.25) !important;
+    border-bottom: 2px solid #bcccdc !important;
     padding-bottom: 7px !important;
     margin-bottom: 12px !important;
     margin-top: 4px !important;
@@ -99,12 +99,12 @@ st.markdown("""
 
   /* Etiquetas de sección (h3) — small caps */
   [data-testid="stSidebar"] h3 {
-    color: #ffffff !important;
+    color: #101828 !important;
     font-size: 11px !important;
     font-weight: 700 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.07em !important;
-    border-bottom: 1px solid rgba(255,255,255,0.2) !important;
+    border-bottom: 1px solid #bcccdc !important;
     padding-bottom: 5px !important;
     margin-bottom: 10px !important;
     padding-left: 0 !important;
@@ -113,30 +113,30 @@ st.markdown("""
 
   /* Labels de campos */
   [data-testid="stSidebar"] label {
-    color: rgba(255,255,255,0.88) !important;
+    color: #101828 !important;
     font-size: 12px !important;
     font-weight: 500 !important;
   }
 
   /* Captions */
   [data-testid="stSidebar"] [data-testid="stCaptionContainer"] {
-    color: rgba(255,255,255,0.7) !important;
+    color: #4b5563 !important;
   }
 
   /* Separadores */
   [data-testid="stSidebar"] hr {
-    border-color: rgba(255,255,255,0.15) !important;
+    border-color: #bcccdc !important;
     margin: 8px 0 !important;
   }
 
   /* Alertas (API key ok) */
   [data-testid="stSidebar"] [data-testid="stAlert"] {
-    background: rgba(255,255,255,0.15) !important;
+    background: #e8edf3 !important;
     border: none !important;
     border-radius: 6px !important;
   }
   [data-testid="stSidebar"] [data-testid="stAlert"] p {
-    color: #ffffff !important;
+    color: #101828 !important;
   }
 
   /* Inputs de texto y fecha — fondo blanco, texto oscuro */
@@ -166,36 +166,50 @@ st.markdown("""
 
   /* File uploader — dropzone */
   [data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] {
-    background: rgba(255,255,255,0.1) !important;
-    border: 1px dashed rgba(255,255,255,0.4) !important;
+    background: #ffffff !important;
+    border: 1px dashed #bcccdc !important;
     border-radius: 8px !important;
   }
   /* Botón "Browse files" dentro del dropzone */
   [data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] button {
-    background: #343a40 !important;
+    background: #df7620 !important;
     color: #ffffff !important;
     border: none !important;
     border-radius: 6px !important;
   }
   [data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] button:hover {
-    background: #495057 !important;
+    background: #c96518 !important;
+  }
+  [data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] button p,
+  [data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] button span {
+    color: #ffffff !important;
+  }
+  [data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] button svg {
+    fill: #ffffff !important;
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+  }
+  [data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] button svg path {
+    fill: #ffffff !important;
+    stroke: #ffffff !important;
   }
   /* Texto de instrucción del dropzone */
   [data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] small,
   [data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] span {
-    color: rgba(255,255,255,0.85) !important;
+    color: #101828 !important;
   }
 
   /* Tarjetas de comparables guardados (filas de st.columns) */
   [data-testid="stSidebar"] [data-testid="stHorizontalBlock"] {
-    background: rgba(255,255,255,0.92) !important;
+    background: #ffffff !important;
+    border: 1px solid #bcccdc !important;
     border-radius: 8px !important;
     padding: 6px 10px !important;
     margin-bottom: 4px !important;
   }
   [data-testid="stSidebar"] [data-testid="stHorizontalBlock"] p,
   [data-testid="stSidebar"] [data-testid="stHorizontalBlock"] small {
-    color: #111827 !important;
+    color: #101828 !important;
   }
 
   /* Botón ✕ dentro de tarjeta — rojo discreto */
@@ -215,14 +229,14 @@ st.markdown("""
 
   /* Botón secundario en sidebar (Limpiar todo) — destructivo */
   [data-testid="stSidebar"] .stButton > button:not([kind="primary"]) {
-    background: rgba(255,255,255,0.92) !important;
+    background: #ffffff !important;
     color: #dc2626 !important;
     border: 1px solid rgba(220,38,38,0.35) !important;
     border-radius: 6px !important;
     font-size: 13px !important;
   }
   [data-testid="stSidebar"] .stButton > button:not([kind="primary"]):hover {
-    background: #ffffff !important;
+    background: #fef2f2 !important;
     border-color: #dc2626 !important;
   }
 
@@ -243,12 +257,13 @@ st.markdown("""
     margin-bottom: 16px;
     display: flex;
     align-items: center;
-    gap: 28px;
+    justify-content: space-between;
+    gap: 48px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
   .app-header h1 {
     color: #111827;
-    font-size: 24px;
+    font-size: 30px;
     font-weight: 700;
     margin: 0;
     line-height: 1.2;
@@ -396,24 +411,32 @@ st.markdown("""
     box-shadow: none !important;
   }
 
-  /* ── Botón primario en sidebar — verde (DESPUÉS del naranja global) ───────── */
-  /* Al ir después, gana por orden cuando la especificidad es igual */
-  [data-testid="stSidebar"] .stButton > button[kind="primary"] {
-    background: #15803d !important;
+  /* ── Botón primario en sidebar — naranja corporativo ─────────────────────── */
+  [data-testid="stSidebar"] .stButton > button[kind="primary"],
+  [data-testid="stSidebar"] button[data-testid="baseButton-primary"] {
+    background: #df7620 !important;
     color: #ffffff !important;
-    border: none !important;
+    border: 1.5px solid #df7620 !important;
     font-weight: 700 !important;
     box-shadow: none !important;
     transform: none !important;
   }
-  [data-testid="stSidebar"] .stButton > button[kind="primary"]:hover {
-    background: #166534 !important;
+  [data-testid="stSidebar"] .stButton > button[kind="primary"] p,
+  [data-testid="stSidebar"] button[data-testid="baseButton-primary"] p {
+    color: #ffffff !important;
+  }
+  [data-testid="stSidebar"] .stButton > button[kind="primary"]:hover,
+  [data-testid="stSidebar"] button[data-testid="baseButton-primary"]:hover {
+    background: #c96518 !important;
+    border-color: #c96518 !important;
     color: #ffffff !important;
     box-shadow: none !important;
     transform: none !important;
   }
-  [data-testid="stSidebar"] .stButton > button[kind="primary"]:disabled {
-    background: rgba(21,128,61,0.35) !important;
+  [data-testid="stSidebar"] .stButton > button[kind="primary"]:disabled,
+  [data-testid="stSidebar"] button[data-testid="baseButton-primary"]:disabled {
+    background: rgba(223,118,32,0.35) !important;
+    border-color: transparent !important;
     color: rgba(255,255,255,0.6) !important;
     box-shadow: none !important;
   }
