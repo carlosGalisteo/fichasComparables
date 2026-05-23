@@ -1,4 +1,4 @@
-﻿# TASKS.md — plan de trabajo fichasComparables
+# TASKS.md — plan de trabajo fichasComparables
 
 ## Objetivo general
 
@@ -8,24 +8,24 @@ Refactorizar `fichasComparables` para convertirla en una herramienta más visual
 
 ## Fase 0 — Preparación
 
-- [ ] Confirmar que se trabaja en una rama distinta de `main`.
-- [ ] Confirmar que `git status` está limpio antes de empezar.
-- [ ] Leer `SPEC.md`.
-- [ ] Leer `CLAUDE.md`.
-- [ ] Leer `TASKS.md`.
-- [ ] Leer `app.py`.
-- [ ] No modificar código todavía.
-- [ ] Devolver ambigüedades, riesgos y plan de implementación.
+- [x] Confirmar que se trabaja en una rama distinta de `main`.
+- [x] Confirmar que `git status` está limpio antes de empezar.
+- [x] Leer `SPEC.md`.
+- [x] Leer `CLAUDE.md`.
+- [x] Leer `TASKS.md`.
+- [x] Leer `app.py`.
+- [x] No modificar código todavía.
+- [x] Devolver ambigüedades, riesgos y plan de implementación.
 
 ---
 
 ## Fase 1 — Estado de sesión y modelo de datos
 
-- [ ] Crear o adaptar `st.session_state.inputs`.
-- [ ] Crear o adaptar `st.session_state.resultados`.
-- [ ] Mantener separados los datos introducidos por el usuario y los datos extraídos por Claude.
-- [ ] Evitar depender del orden entre imágenes, URLs y referencias en listas separadas.
-- [ ] Mantener numeración clara de comparables.
+- [x] Crear o adaptar `st.session_state.inputs`.
+- [x] Crear o adaptar `st.session_state.resultados`.
+- [x] Mantener separados los datos introducidos por el usuario y los datos extraídos por Claude.
+- [x] Evitar depender del orden entre imágenes, URLs y referencias en listas separadas.
+- [x] Mantener numeración clara de comparables.
 
 Criterio de aceptación:
 
@@ -35,15 +35,15 @@ Criterio de aceptación:
 
 ## Fase 2 — Nuevo flujo de entrada comparable a comparable
 
-- [ ] Sustituir el `file_uploader` múltiple por entrada individual de comparable.
-- [ ] Añadir campo de imagen por comparable.
-- [ ] Añadir campo URL por comparable.
-- [ ] Añadir campo referencia catastral opcional por comparable.
-- [ ] Añadir selectbox de estado de conservación por comparable.
-- [ ] Añadir botón `Guardar y añadir otro comparable`.
-- [ ] Añadir botón `Finalizar carga del lote`.
-- [ ] Permitir eliminar comparables ya añadidos.
-- [ ] Mostrar resumen de comparables cargados.
+- [x] Sustituir el `file_uploader` múltiple por entrada individual de comparable.
+- [x] Añadir campo de imagen por comparable.
+- [x] Añadir campo URL por comparable.
+- [x] Añadir campo referencia catastral opcional por comparable.
+- [x] Añadir selectbox de estado de conservación por comparable.
+- [x] Añadir botón `Guardar y añadir otro comparable`.
+- [x] Añadir botón `Finalizar carga del lote`.
+- [x] Permitir eliminar comparables ya añadidos.
+- [x] Mostrar resumen de comparables cargados.
 
 Criterio de aceptación:
 
@@ -53,12 +53,12 @@ Criterio de aceptación:
 
 ## Fase 3 — Revisión previa del lote
 
-- [ ] Mostrar resumen antes del análisis.
-- [ ] Indicar imagen, URL, referencia y estado de cada comparable.
-- [ ] Avisar si falta imagen.
-- [ ] Avisar si falta estado de conservación.
-- [ ] Deshabilitar análisis si el lote no es válido.
-- [ ] Permitir limpiar todo el lote.
+- [x] Mostrar resumen antes del análisis.
+- [x] Indicar imagen, URL, referencia y estado de cada comparable.
+- [x] Avisar si falta imagen. *(el botón "Guardar comparable" queda deshabilitado si no hay imagen)*
+- [x] Avisar si falta estado de conservación. *(estado siempre tiene valor por defecto)*
+- [x] Deshabilitar análisis si el lote no es válido.
+- [x] Permitir limpiar todo el lote.
 
 Criterio de aceptación:
 
@@ -68,12 +68,12 @@ Criterio de aceptación:
 
 ## Fase 4 — Adaptar análisis con Claude
 
-- [ ] Adaptar el botón de análisis para recorrer `st.session_state.inputs`.
-- [ ] Mantener la función `extract_comparable_from_image()` lo más estable posible.
-- [ ] Pasar a Claude imagen, número, URL, fecha y referencia.
-- [ ] Guardar resultados en `st.session_state.resultados`.
-- [ ] Conservar nombre de imagen en cada resultado.
-- [ ] Capturar errores por comparable sin romper todo el lote.
+- [x] Adaptar el botón de análisis para recorrer `st.session_state.inputs`.
+- [x] Mantener la función `extract_comparable_from_image()` lo más estable posible.
+- [x] Pasar a Claude imagen, número, URL, fecha y referencia.
+- [x] Guardar resultados en `st.session_state.resultados`.
+- [x] Conservar nombre de imagen en cada resultado.
+- [x] Capturar errores por comparable sin romper todo el lote.
 
 Criterio de aceptación:
 
@@ -83,11 +83,11 @@ Criterio de aceptación:
 
 ## Fase 5 — Inyección de datos manuales en campos Excel
 
-- [ ] Inyectar estado de conservación en `campos["H6"]`.
-- [ ] Inyectar referencia catastral en `campos["B4"]`.
-- [ ] Inyectar URL en `campos["B12"]`.
-- [ ] Inyectar fecha global en `campos["H3"]`.
-- [ ] Confirmar que estos datos llegan a `fill_comparable()`.
+- [x] Inyectar estado de conservación en `campos["H6"]`.
+- [x] Inyectar referencia catastral en `campos["B4"]`.
+- [x] Inyectar URL en `campos["B12"]`.
+- [x] Inyectar fecha global en `campos["H3"]`.
+- [x] Confirmar que estos datos llegan a `fill_comparable()`.
 
 Criterio de aceptación:
 
@@ -118,17 +118,17 @@ Criterio de aceptación:
 
 ## Fase 7 — Rediseño visual
 
-- [ ] Cambiar fondo general a blanco.
-- [ ] Usar texto principal negro o gris muy oscuro.
-- [ ] Mantener `icono.png` en cabecera.
-- [ ] Usar `#df7620` y `#dd4717` como colores corporativos.
-- [ ] Usar texto blanco sobre fondos naranjas.
-- [ ] Rediseñar panel izquierdo.
-- [ ] Rediseñar tarjetas de comparables.
-- [ ] Rediseñar botones principales.
-- [ ] Mantener botón de descarga en verde Excel.
-- [ ] Evitar estética oscura.
-- [ ] Evitar interfaz recargada.
+- [x] Cambiar fondo general a blanco.
+- [x] Usar texto principal negro o gris muy oscuro.
+- [x] Mantener `icono.png` en cabecera.
+- [x] Usar `#df7620` y `#dd4717` como colores corporativos.
+- [x] Usar texto blanco sobre fondos naranjas.
+- [x] Rediseñar panel izquierdo.
+- [x] Rediseñar tarjetas de comparables.
+- [x] Rediseñar botones principales.
+- [x] Mantener botón de descarga en verde Excel.
+- [x] Evitar estética oscura.
+- [x] Evitar interfaz recargada.
 
 Criterio de aceptación:
 
@@ -138,16 +138,24 @@ Criterio de aceptación:
 
 ## Fase 8 — Generación y descarga del Excel
 
-- [ ] Mantener `build_xlsx_multisheet()`.
-- [ ] Confirmar que un comparable genera un Excel válido.
-- [ ] Confirmar que varios comparables generan un Excel multihoja válido.
-- [ ] Mantener botón de descarga.
-- [ ] Aplicar estilo verde Excel al botón de descarga.
-- [ ] Conservar nombre de archivo configurable.
+- [x] Mantener `build_xlsx_multisheet()`.
+- [x] Confirmar que un comparable genera un Excel válido.
+- [x] Confirmar que varios comparables generan un Excel multihoja válido.
+- [x] Mantener botón de descarga.
+- [x] Aplicar estilo verde Excel al botón de descarga.
+- [x] Conservar nombre de archivo configurable.
 
 Criterio de aceptación:
 
 - El usuario puede descargar un `.xlsx` final correctamente generado.
+
+---
+
+## Mejoras implementadas fuera del plan original
+
+- Normalización JPEG para Claude Vision mediante `resize_to_fit`, `split_or_resize` y fragmentación por bandas.
+- Validación local previa sin coste mediante `prepare_image_parts` y botón "🔎 Validar imágenes".
+- Excel multisheet corregido preservando celdas combinadas, hojas ocultas y validaciones de datos.
 
 ---
 
