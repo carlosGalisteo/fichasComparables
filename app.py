@@ -41,6 +41,14 @@ FIELD_LABELS = {
     "H3":  "Fecha de aportación",
 }
 
+TIPOLOGIAS = {
+    "vivienda":      {"label": "Vivienda",        "enabled": True},
+    "local_oficina": {"label": "Local / Oficina",  "enabled": False},
+    "nave":          {"label": "Nave",             "enabled": False},
+    "garaje":        {"label": "Garaje",           "enabled": False},
+    "terreno":       {"label": "Terreno",          "enabled": False},
+}
+
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIGURACIÓN DE PÁGINA
 # ─────────────────────────────────────────────────────────────────────────────
@@ -408,6 +416,72 @@ st.markdown("""
     background: rgba(21,128,61,0.35) !important;
     color: rgba(255,255,255,0.6) !important;
     box-shadow: none !important;
+  }
+
+  /* ── Botonera de tipología ─────────────────────────────────────────────────── */
+  /* Geometría base: todos los botones del panel comparten estos valores exactos. */
+  .main [data-testid="stHorizontalBlock"] [data-testid="column"]:last-child button[kind] {
+    width: 100% !important;
+    padding: 7px 10px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    line-height: 1.3 !important;
+    letter-spacing: 0.07em !important;
+    text-align: center !important;
+    border-radius: 12px !important;
+    border-width: 1.5px !important;
+    border-style: solid !important;
+    box-sizing: border-box !important;
+    box-shadow: none !important;
+    transition: none !important;
+    transform: none !important;
+    outline: none !important;
+  }
+  /* No seleccionado (secondary) */
+  .main [data-testid="stHorizontalBlock"] [data-testid="column"]:last-child button[kind="secondary"] {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border-color: #dd4717 !important;
+  }
+  .main [data-testid="stHorizontalBlock"] [data-testid="column"]:last-child button[kind="secondary"]:hover {
+    background: #fff4f1 !important;
+    border-color: #c03d11 !important;
+    color: #c03d11 !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+  .main [data-testid="stHorizontalBlock"] [data-testid="column"]:last-child button[kind="secondary"]:active,
+  .main [data-testid="stHorizontalBlock"] [data-testid="column"]:last-child button[kind="secondary"]:focus {
+    background: #fff4f1 !important;
+    border-color: #c03d11 !important;
+    color: #c03d11 !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+  /* No seleccionado deshabilitado (bloqueado) */
+  .main [data-testid="stHorizontalBlock"] [data-testid="column"]:last-child button[kind="secondary"]:disabled {
+    background: #f9fafb !important;
+    color: #9ca3af !important;
+    border-color: #e5e7eb !important;
+    cursor: not-allowed !important;
+  }
+  /* Seleccionado (primary) — no cambia en ningún estado */
+  .main [data-testid="stHorizontalBlock"] [data-testid="column"]:last-child button[kind="primary"],
+  .main [data-testid="stHorizontalBlock"] [data-testid="column"]:last-child button[kind="primary"]:hover,
+  .main [data-testid="stHorizontalBlock"] [data-testid="column"]:last-child button[kind="primary"]:active,
+  .main [data-testid="stHorizontalBlock"] [data-testid="column"]:last-child button[kind="primary"]:focus {
+    background: #dd4717 !important;
+    color: #ffffff !important;
+    border-color: #dd4717 !important;
+    font-weight: 700 !important;
+    cursor: default !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+  /* Separador izquierdo del panel de tipología */
+  .main [data-testid="stHorizontalBlock"] [data-testid="column"]:last-child {
+    border-left: 1px solid #e5e7eb;
+    padding-left: 1.25rem;
   }
 
   /* ── Ocultar elementos de Streamlit ──────────────────────────────────────── */
@@ -908,6 +982,9 @@ if "fase" not in st.session_state:
 if "form_key" not in st.session_state:
     st.session_state.form_key = 0      # incrementar al guardar para resetear el formulario
 
+if "tipologia_actual" not in st.session_state:
+    st.session_state.tipologia_actual = "vivienda"
+
 # ─────────────────────────────────────────────────────────────────────────────
 # SIDEBAR — CONFIGURACIÓN
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1055,124 +1132,162 @@ st.markdown(f"""
 # RESUMEN DEL LOTE Y BOTÓN DE ANÁLISIS
 # ─────────────────────────────────────────────────────────────────────────────
 
-if st.session_state.inputs:
-    st.markdown("---")
-    _n = len(st.session_state.inputs)
-    st.markdown(f"### Lote cargado — {_n} comparable(s)")
+st.markdown("---")
+col_main, col_tipo = st.columns([3, 1])
 
-    _lote_html = ""
-    for _item in st.session_state.inputs:
-        _url_ok = "✓" if _item["url"] else "—"
-        _ref_raw = _item.get("ref", "")
-        _ref_disp = (_ref_raw[:18] + "…") if len(_ref_raw) > 18 else (_ref_raw or "—")
-        _lote_html += (
-            f'<div class="lote-row">'
-            f'<div class="lote-num">{_item["num"]}</div>'
-            f'<div>'
-            f'<div class="lote-name">{_item["image_name"]}</div>'
-            f'<div class="lote-meta">Estado: {_item["estado"]} &nbsp;·&nbsp; URL: {_url_ok} &nbsp;·&nbsp; Ref: {_ref_disp}</div>'
-            f'</div></div>'
-        )
-    st.markdown(_lote_html, unsafe_allow_html=True)
-
-    st.markdown("---")
-    _can_analyze = bool(api_key) and bool(st.session_state.inputs)
-
-    if st.button(
-        "🔎 Validar imágenes sin llamar a Claude",
-        disabled=not st.session_state.inputs,
-        help="Comprueba que todas las imágenes cumplen los límites de Claude Vision sin gastar tokens.",
-        use_container_width=True,
-    ):
-        _val_ok = True
-        for _vinp in st.session_state.inputs:
-            _vparts = prepare_image_parts(_vinp["image_bytes"])
-            _vbad   = [_p for _p in _vparts if not _p["ok"]]
-            _vicon  = "✅" if not _vbad else "❌"
-            with st.expander(
-                f"{_vicon} Comparable {_vinp['num']} — {_vinp['image_name']}",
-                expanded=bool(_vbad),
-            ):
-                _vmd = (
-                    "| Etiqueta | Dimensiones | Peso | Tipo | Estado |\n"
-                    "|---|---|---|---|---|\n"
-                )
-                for _p in _vparts:
-                    _vst = "✅ OK" if _p["ok"] else f"❌ {_p['error']}"
-                    _vmd += (
-                        f"| {_p['label'][:45]} | {_p['width']}×{_p['height']} px"
-                        f" | {_p['size_bytes'] / 1048576:.2f} MB"
-                        f" | {_p['media_type']} | {_vst} |\n"
-                    )
-                st.markdown(_vmd)
-            if _vbad:
-                _val_ok = False
-        if _val_ok:
-            st.success("✅ Todas las imágenes son válidas para Claude Vision.")
-
-    _help_btn = (
-        "Introduce una API Key de Anthropic en el panel izquierdo."
-        if not api_key else ""
+# ── Panel de tipología (columna derecha) ──────────────────────────────────────
+with col_tipo:
+    _tipo_locked = bool(st.session_state.inputs)
+    st.markdown(
+        "<div style='font-size:11px;font-weight:700;text-transform:uppercase;"
+        "letter-spacing:0.07em;color:#6b7280;margin-bottom:10px;'>"
+        "Tipología del lote</div>",
+        unsafe_allow_html=True,
     )
-    if st.button(
-        f"▶ Analizar {_n} comparable(s) con Claude",
-        type="primary",
-        disabled=not _can_analyze,
-        help=_help_btn,
-    ):
-        _client = anthropic.Anthropic(api_key=api_key)
-        st.session_state.resultados = []
-        _errors = []
+    for _k, _tinfo in TIPOLOGIAS.items():
+        _tsel = (_k == st.session_state.tipologia_actual)
+        _clicked = st.button(
+            _tinfo["label"].upper(),
+            key=f"tipo_{_k}",
+            type="primary" if _tsel else "secondary",
+            disabled=_tipo_locked,
+            use_container_width=True,
+        )
+        if _clicked and not _tsel:
+            st.session_state.tipologia_actual = _k
+            st.rerun()
+    if _tipo_locked:
+        st.caption("Para cambiar la tipología, limpia primero el lote.")
+    elif not TIPOLOGIAS[st.session_state.tipologia_actual]["enabled"]:
+        st.warning("Esta tipología no está disponible todavía. "
+                   "El análisis quedará deshabilitado.")
 
-        _progress = st.progress(0, text="Preparando análisis...")
-        _status = st.empty()
+# ── Lote y acciones (columna principal) ───────────────────────────────────────
+with col_main:
+    if st.session_state.inputs:
+        _n = len(st.session_state.inputs)
+        st.markdown(f"### Lote cargado — {_n} comparable(s)")
 
-        for _i, _inp in enumerate(st.session_state.inputs):
-            _status.info(f"Analizando comparable {_inp['num']} de {_n}…")
-            try:
-                _img_b64 = base64.standard_b64encode(_inp["image_bytes"]).decode("utf-8")
-                _result  = extract_comparable_from_image(
-                    _client,
-                    _img_b64,
-                    _inp["image_type"],
-                    _inp["num"],
-                    _inp["url"],
-                    fecha_str,
-                    _inp["ref"],
-                )
-                _campos = _result.get("campos", {})
-                _flags  = _result.get("flags", {})
-                _campos["H6"] = _inp["estado"]
-                _campos["B4"] = _inp["ref"]
-                _campos["B12"] = _inp["url"]
-                _campos["H3"] = fecha_str
-                st.session_state.resultados.append({
-                    "comparable": _inp["num"],
-                    "campos":     _campos,
-                    "flags":      _flags,
-                    "img_name":   _inp["image_name"],
-                })
-            except json.JSONDecodeError as _e:
-                _errors.append(f"Comparable {_inp['num']}: JSON inválido — {_e}")
-            except anthropic.APIError as _e:
-                _errors.append(f"Comparable {_inp['num']}: Error de API — {_e}")
-            except Exception as _e:
-                _errors.append(f"Comparable {_inp['num']}: Error inesperado — {_e}")
-            _progress.progress((_i + 1) / _n)
-
-        _progress.empty()
-        _status.empty()
-
-        if st.session_state.resultados:
-            st.success(
-                f"✅ Análisis completado — {len(st.session_state.resultados)} "
-                f"comparable(s) procesado(s) correctamente."
+        _lote_html = ""
+        for _item in st.session_state.inputs:
+            _url_ok = "✓" if _item["url"] else "—"
+            _ref_raw = _item.get("ref", "")
+            _ref_disp = (_ref_raw[:18] + "…") if len(_ref_raw) > 18 else (_ref_raw or "—")
+            _lote_html += (
+                f'<div class="lote-row">'
+                f'<div class="lote-num">{_item["num"]}</div>'
+                f'<div>'
+                f'<div class="lote-name">{_item["image_name"]}</div>'
+                f'<div class="lote-meta">Estado: {_item["estado"]} &nbsp;·&nbsp; URL: {_url_ok} &nbsp;·&nbsp; Ref: {_ref_disp}</div>'
+                f'</div></div>'
             )
-        for _err in _errors:
-            st.error(_err)
-        st.session_state.fase = "resultados"
-else:
-    st.info("Usa el panel izquierdo para añadir comparables al lote.")
+        st.markdown(_lote_html, unsafe_allow_html=True)
+
+        st.markdown("---")
+        _can_analyze = (
+            bool(api_key)
+            and bool(st.session_state.inputs)
+            and TIPOLOGIAS[st.session_state.tipologia_actual]["enabled"]
+        )
+
+        if st.button(
+            "🔎 Validar imágenes sin llamar a Claude",
+            disabled=not st.session_state.inputs,
+            help="Comprueba que todas las imágenes cumplen los límites de Claude Vision sin gastar tokens.",
+            use_container_width=True,
+        ):
+            _val_ok = True
+            for _vinp in st.session_state.inputs:
+                _vparts = prepare_image_parts(_vinp["image_bytes"])
+                _vbad   = [_p for _p in _vparts if not _p["ok"]]
+                _vicon  = "✅" if not _vbad else "❌"
+                with st.expander(
+                    f"{_vicon} Comparable {_vinp['num']} — {_vinp['image_name']}",
+                    expanded=bool(_vbad),
+                ):
+                    _vmd = (
+                        "| Etiqueta | Dimensiones | Peso | Tipo | Estado |\n"
+                        "|---|---|---|---|---|\n"
+                    )
+                    for _p in _vparts:
+                        _vst = "✅ OK" if _p["ok"] else f"❌ {_p['error']}"
+                        _vmd += (
+                            f"| {_p['label'][:45]} | {_p['width']}×{_p['height']} px"
+                            f" | {_p['size_bytes'] / 1048576:.2f} MB"
+                            f" | {_p['media_type']} | {_vst} |\n"
+                        )
+                    st.markdown(_vmd)
+                if _vbad:
+                    _val_ok = False
+            if _val_ok:
+                st.success("✅ Todas las imágenes son válidas para Claude Vision.")
+
+        if not api_key:
+            _help_btn = "Introduce una API Key de Anthropic en el panel izquierdo."
+        elif not TIPOLOGIAS[st.session_state.tipologia_actual]["enabled"]:
+            _help_btn = "Esta tipología no está disponible todavía."
+        else:
+            _help_btn = ""
+
+        if st.button(
+            f"▶ Analizar {_n} comparable(s) con Claude",
+            type="primary",
+            disabled=not _can_analyze,
+            help=_help_btn,
+        ):
+            _client = anthropic.Anthropic(api_key=api_key)
+            st.session_state.resultados = []
+            _errors = []
+
+            _progress = st.progress(0, text="Preparando análisis...")
+            _status = st.empty()
+
+            for _i, _inp in enumerate(st.session_state.inputs):
+                _status.info(f"Analizando comparable {_inp['num']} de {_n}…")
+                try:
+                    _img_b64 = base64.standard_b64encode(_inp["image_bytes"]).decode("utf-8")
+                    _result  = extract_comparable_from_image(
+                        _client,
+                        _img_b64,
+                        _inp["image_type"],
+                        _inp["num"],
+                        _inp["url"],
+                        fecha_str,
+                        _inp["ref"],
+                    )
+                    _campos = _result.get("campos", {})
+                    _flags  = _result.get("flags", {})
+                    _campos["H6"] = _inp["estado"]
+                    _campos["B4"] = _inp["ref"]
+                    _campos["B12"] = _inp["url"]
+                    _campos["H3"] = fecha_str
+                    st.session_state.resultados.append({
+                        "comparable": _inp["num"],
+                        "campos":     _campos,
+                        "flags":      _flags,
+                        "img_name":   _inp["image_name"],
+                    })
+                except json.JSONDecodeError as _e:
+                    _errors.append(f"Comparable {_inp['num']}: JSON inválido — {_e}")
+                except anthropic.APIError as _e:
+                    _errors.append(f"Comparable {_inp['num']}: Error de API — {_e}")
+                except Exception as _e:
+                    _errors.append(f"Comparable {_inp['num']}: Error inesperado — {_e}")
+                _progress.progress((_i + 1) / _n)
+
+            _progress.empty()
+            _status.empty()
+
+            if st.session_state.resultados:
+                st.success(
+                    f"✅ Análisis completado — {len(st.session_state.resultados)} "
+                    f"comparable(s) procesado(s) correctamente."
+                )
+            for _err in _errors:
+                st.error(_err)
+            st.session_state.fase = "resultados"
+    else:
+        st.info("Usa el panel izquierdo para añadir comparables al lote.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
