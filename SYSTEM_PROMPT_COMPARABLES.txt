@@ -261,6 +261,11 @@ VISTAS (B8)
     "vistas al mar", "vistas panorámicas" o expresiones similares que
     indiquen vistas favorables. No inferir por la ubicación geográfica.
 
+ASCENSOR (D8)
+  → Sí si se menciona expresamente "ascensor" o "ascensores".
+  → No si el anuncio indica que no tiene ascensor, o si no se menciona.
+  → Nunca dejar DESCONOCIDO: ausencia de mención equivale a No.
+
 ────────────────────────────────────────────────────────────────────────────────
 3.4 VALORACIÓN ECONÓMICA
 ────────────────────────────────────────────────────────────────────────────────
@@ -408,7 +413,7 @@ Para cada imagen, seguir este orden SIN EXCEPCIÓN:
     sup. construida, edad, reforma. Todos los valores deben haberse leído
     en el Paso 0; no estimar ni aproximar.
 
-  PASO 4 — Extraer dotaciones: terraza, garaje, piscina, trastero, vistas.
+  PASO 4 — Extraer dotaciones: terraza, garaje, piscina, trastero, vistas, ascensor.
     Verificar expresamente si el garaje está incluido en el precio.
 
   PASO 5 — Extraer datos económicos: precio oferta (confirmar con ZONA_PRECIO),
@@ -456,6 +461,7 @@ sin marcadores de código (``` ), sin explicaciones. Estructura:
     "F7":  "No",
     "H7":  "No",
     "B8":  "No",
+    "D8":  "No",
     "B9":  250000,
     "D9":  null,
     "F9":  0.08,

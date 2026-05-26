@@ -229,7 +229,7 @@ def add_dropdowns(ws, wb, municipio, sheet_title):
     dv_bool = DataValidation(type="list",
         formula1='"Sí,No"',
         allow_blank=True, showErrorMessage=False)
-    dv_bool.sqref = "B7 D7 F7 H7 B8"
+    dv_bool.sqref = "B7 D7 F7 H7 B8 D8"
     ws.add_data_validation(dv_bool)
 
 
@@ -279,6 +279,7 @@ def fill_comparable(template_path, out_path, num, campos, flags):
     set_val(ws, "F7",  campos.get("F7"))
     set_val(ws, "H7",  campos.get("H7"))
     set_val(ws, "B8",  campos.get("B8"))
+    set_val(ws, "D8",  campos.get("D8"))
 
     set_val(ws, "B9",  campos.get("B9"),        red=rojo("B9"), num_fmt="#,##0 €")
     ws["D9"].value = None

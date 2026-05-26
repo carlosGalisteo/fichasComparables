@@ -39,6 +39,7 @@ FIELD_LABELS = {
     "D11": "Comercializador",
     "B12": "URL del anuncio",
     "H3":  "Fecha de aportación",
+    "D8":  "Ascensor",
 }
 
 TIPOLOGIAS = {
